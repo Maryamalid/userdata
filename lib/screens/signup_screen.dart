@@ -24,7 +24,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       print("UserCredential: ${userCredential.toString()}");
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Account created successfully!")),
+        const SnackBar(content: Text("Account created successfully!")),
       );
     } catch (e, s) {
       context.showSnackBar(e.toString());

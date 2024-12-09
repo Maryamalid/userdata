@@ -1,5 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:user_data/extention/context_extention.dart';
+import 'home_screen.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -10,139 +13,152 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  TextEditingController emailController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
 
-  // تسجيل الدخول
-  Future<void> _signIn() async {
+  void signIn() async {
     try {
-      final UserCredential userCredential =
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      print("UserCredential: ${userCredential.toString()}");
+      UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(
+              email: emailController.text, password: passwordController.text);
+      print("userCredential ${userCredential.toString()}");
     } catch (e, s) {
-      print('Error: $e');
-      print('Stack Trace: $s');
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
+      print("error ${e}");
+      print("stack ${s}");
     }
+  }
+
+  Future<void> signInWithGoogle() async {
+    // Trigger the authentication flow
+    final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+
+    // Obtain the auth details from the request
+    final GoogleSignInAuthentication? googleAuth =
+        await googleUser?.authentication;
+
+    // Create a new credential
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth?.accessToken,
+      idToken: googleAuth?.idToken,
+    );
+
+    // Once signed in, return the UserCredential
+    UserCredential userCredential =
+        await FirebaseAuth.instance.signInWithCredential(credential);
+    if (userCredential.user != null) {}
   }
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
+    emailController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final double height = MediaQuery.sizeOf(context).height;
-
+    double height = MediaQuery.sizeOf(context).height;
+    print("rebuild");
+    var inputDecoration = InputDecoration(
+      hintText: "Email",
+      filled: true,
+      fillColor: Colors.grey[200],
+    );
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
           child: Form(
-            key: _formKey,
+            key: formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SizedBox(height: height / 8),
+                SizedBox(
+                  height: height / 8,
+                ),
                 Text(
                   "Sign in\nYour Account",
-                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  style: Theme.of(context).textTheme.displayLarge,
                 ),
-                SizedBox(height: height / 8),
+                SizedBox(
+                  height: height / 8,
+                ),
                 TextFormField(
-                  controller: _emailController,
-                  validator: (String? email) {
-                    if (email == null || email.isEmpty) {
-                      return "Please enter your email.";
-                    }
-                    if (!RegExp(r"^[a-zA-Z0-9]+@[a-zA-Z]+\.[a-zA-Z]+")
-                        .hasMatch(email)) {
-                      return "Please enter a valid email.";
+                  controller: emailController,
+                  validator: (String? name) {
+                    if (name?.isEmpty ?? true) {
+                      return "please enter name";
                     }
                     return null;
                   },
-                  decoration: InputDecoration(
-                    hintText: "Email",
-                    filled: true,
-                    fillColor: Colors.grey[200],
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
+                  decoration: inputDecoration,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(
+                  height: 20,
+                ),
                 TextFormField(
-                  controller: _passwordController,
-                  obscureText: true,
+                  controller: passwordController,
                   validator: (String? password) {
-                    if (password == null || password.isEmpty) {
-                      return "Please enter your password.";
-                    }
-                    if (password.length < 6) {
-                      return "Password must be at least 6 characters.";
+                    if (password?.isEmpty ?? true) {
+                      return "please enter password";
                     }
                     return null;
                   },
-                  decoration: InputDecoration(
+                  decoration: inputDecoration.copyWith(
                     hintText: "Password",
-                    filled: true,
-                    fillColor: Colors.grey[200],
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
                   ),
                 ),
-                SizedBox(height: height / 12),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  onPressed: () {
-                    if (_formKey.currentState?.validate() ?? false) {
-                      _signIn();
+                SizedBox(
+                  height: height / 12,
+                ),
+                MaterialButton(
+                  color: Theme.of(context).colorScheme.secondaryContainer,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  onPressed: () async {
+                    if (formKey.currentState?.validate() ?? false) {
+                      signIn();
                     }
                   },
-                  child: const Text(
+                  child: Text(
                     "Login",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 ),
-                const SizedBox(height: 10),
-                OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
+                const SizedBox(
+                  height: 10,
+                ),
+                MaterialButton(
+                  color: Theme.of(context).colorScheme.surface,
+                  shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const SignUpScreen(),
-                      ),
-                    );
+                      side: BorderSide(
+                          color: Theme.of(context).colorScheme.onSurface)),
+                  onPressed: () async {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => SignUpScreen()));
                   },
-                  child: const Text(
-                    "Sign Up",
-                    style: TextStyle(fontSize: 16),
+                  child: Text(
+                    "SignUp",
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ),
+                const SizedBox(
+                  height: 10,
+                ),
+                MaterialButton(
+                  color: Theme.of(context).colorScheme.surface,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      side: BorderSide(
+                          color: Theme.of(context).colorScheme.onSurface)),
+                  onPressed: () async {
+                    await signInWithGoogle();
+                  },
+                  child: Text(
+                    "Google",
+                    style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 ),
               ],
